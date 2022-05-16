@@ -1,9 +1,9 @@
-import os
+import pickle
+
 import cv2
 import numpy as np
 import optuna
 import pandas as pd
-import pickle
 from imblearn.under_sampling import RandomUnderSampler
 from skimage.util import view_as_windows
 from sklearn.ensemble import RandomForestClassifier
@@ -12,36 +12,23 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from tqdm.notebook import tqdm
 
-sp_key = ('m00', 'm10', 'm01', 'm20', 'm11', 'm02', 'm30', 'm21', 'm12', 'm03')
-nu_key = ('nu20', 'nu11', 'nu02', 'nu30', 'nu21', 'nu12', 'nu03')
-
-ch_avg = [f'$\mu({x})$' for x in 'BGR']
-ch_std = [f'$\sigma({x})$' for x in 'BGR']
-hu_mom = [f'$I_{x + 1}$' for x in range(7)]
-sp_mom = ['$M_{' + x[1:] + '}$' for x in sp_key]
-nu_mom = ['$\eta_{' + x[2:] + '}$' for x in nu_key]
-
-features = ch_avg + ch_std + hu_mom + sp_mom + nu_mom
+from utils import get_data
 
 
-def get_data(path='./HRF/'):
-    files = sorted(os.listdir(path))
-    data = {
-        'original': [],
-        'labeled': [],
-        'mask': []
-    }
-    dim = (876, 584)
-    fun = lambda src: cv2.resize(cv2.imread(src), dim, interpolation = cv2.INTER_AREA)
-    fun_with_0 = lambda src: cv2.resize(cv2.imread(src, 0), dim, interpolation = cv2.INTER_AREA)
-    for file in files:
-        if file.endswith('h.jpg'):
-            data['original'].append(fun(src=f'{path}{file}'))
-        elif file.endswith('h.tif'):
-            data['labeled'].append(fun_with_0(src=f'{path}{file}'))
-        elif file.endswith('h_mask.tif'):
-            data['mask'].append(fun_with_0(src=f'{path}{file}'))
-    return data
+def get_features():
+    sp_key = ('m00', 'm10', 'm01', 'm20', 'm11', 'm02', 'm30', 'm21', 'm12', 'm03')
+    nu_key = ('nu20', 'nu11', 'nu02', 'nu30', 'nu21', 'nu12', 'nu03')
+
+    ch_avg = [f'$\mu({x})$' for x in 'BGR']
+    ch_std = [f'$\sigma({x})$' for x in 'BGR']
+    hu_mom = [f'$I_{x + 1}$' for x in range(7)]
+    sp_mom = ['$M_{' + x[1:] + '}$' for x in sp_key]
+    nu_mom = ['$\eta_{' + x[2:] + '}$' for x in nu_key]
+
+    return ch_avg + ch_std + hu_mom + sp_mom + nu_mom
+
+
+features = get_features()
 
 
 def split_image(image, tile_size=5, step=None):
@@ -67,8 +54,6 @@ def create_meta_data_row(row, step=None):
     image = cv2.fastNlMeansDenoisingColored(image, None, 5, 5, 7, 21)
     X = np.array([get_features(x) for x in split_image(image, step=step)])
     y = split_image(label, step=step)[:, 3, 3] > 0
-    print(y.shape)
-    y = y[:, 3, 3] > 0
     y = y.astype(int)
     return X, y
 
@@ -85,9 +70,19 @@ def meta_data(data):
 
 
 def create_data():
-    data = pd.DataFrame(get_data()).loc[:, ['original', 'labeled']]
+    data = get_data(path='./data/HRF/')
+    data['original'], data['labeled'] = resize_data(data['original']), resize_data(data['labeled'])
+    data = pd.DataFrame(data).loc[:, ['original', 'labeled']]
     data['id'] = data.index
-    return meta_data(data[5:])
+    return meta_data(data)
+
+
+def resize_data(data):
+    new_data = list()
+    dim = (876, 584)
+    for image in data:
+        new_data.append(cv2.resize(image, dim, interpolation=cv2.INTER_AREA))
+    return new_data
 
 
 def create_model(data_train):
@@ -120,3 +115,22 @@ def create_model(data_train):
     final_clf.fit(X_train, y_train)
     pickle.dump(final_clf, open('./output/RFC_model', 'wb'))
 
+
+def train_final_model(data_train):
+    X_train, y_train = data_train[features], data_train['label']
+    scaler = StandardScaler()
+    scaler.fit_transform(X_train)
+    sampler = RandomUnderSampler(sampling_strategy=1, random_state=42)
+    X_train, y_train = sampler.fit_resample(X_train, y_train)
+    clf = RandomForestClassifier(n_estimators=500, max_features='sqrt',
+                                 random_state=42, n_jobs=-1, max_depth=9,
+                                 min_samples_leaf=0.006614898692020784,
+                                 min_samples_split=0.10957448847859105)
+    clf.fit(X_train, y_train)
+    pickle.dump(clf, open('./output/RFC_model', 'wb'))
+
+
+if __name__ == '__main__':
+    df = create_data()
+    mdata = meta_data(df)
+    train_final_model(mdata[:9])
