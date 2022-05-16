@@ -13,7 +13,7 @@ def create_result_classic(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
     mask = (frangi(mask))
     mask = cv2.blur(mask, (30, 30))
     mask = normalize(mask)
-    _, mask = cv2.threshold(mask, 190, 255, cv2.THRESH_BINARY)
+    _, mask = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY)
     image = normalize(filtered)
     _, image = cv2.threshold(image, 150, 255, cv2.THRESH_BINARY_INV)
     image, mask = image.astype(np.uint8), mask.astype(np.uint8)

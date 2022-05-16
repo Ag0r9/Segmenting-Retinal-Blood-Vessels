@@ -15,10 +15,11 @@ from tqdm.notebook import tqdm
 from utils import get_data
 
 
-def get_feature_names():
-    sp_key = ('m00', 'm10', 'm01', 'm20', 'm11', 'm02', 'm30', 'm21', 'm12', 'm03')
-    nu_key = ('nu20', 'nu11', 'nu02', 'nu30', 'nu21', 'nu12', 'nu03')
+sp_key = ('m00', 'm10', 'm01', 'm20', 'm11', 'm02', 'm30', 'm21', 'm12', 'm03')
+nu_key = ('nu20', 'nu11', 'nu02', 'nu30', 'nu21', 'nu12', 'nu03')
 
+
+def get_feature_names():
     ch_avg = [f'$\mu({x})$' for x in 'BGR']
     ch_std = [f'$\sigma({x})$' for x in 'BGR']
     hu_mom = [f'$I_{x + 1}$' for x in range(7)]
@@ -117,20 +118,18 @@ def create_model(data_train):
 
 
 def train_final_model(data_train):
-    X_train, y_train = data_train[features], data_train['label']
+    X_train, y_train = data_train.drop(['Unnamed: 0', 'id', 'label'], axis=1), data_train['label']
     scaler = StandardScaler()
     scaler.fit_transform(X_train)
     sampler = RandomUnderSampler(sampling_strategy=1, random_state=42)
     X_train, y_train = sampler.fit_resample(X_train, y_train)
     clf = RandomForestClassifier(n_estimators=500, max_features='sqrt',
-                                 random_state=42, n_jobs=-1, max_depth=9,
-                                 min_samples_leaf=0.006614898692020784,
-                                 min_samples_split=0.10957448847859105)
+                                 random_state=42, n_jobs=-1, max_depth=8,
+                                 min_samples_leaf=0.0011436577596664168,
+                                 min_samples_split=0.01148842820048565)
     clf.fit(X_train, y_train)
     pickle.dump(clf, open('./output/RFC_model', 'wb'))
 
 
 if __name__ == '__main__':
-    df = create_data()
-    mdata = meta_data(df)
-    train_final_model(mdata[:9])
+    train_final_model(pd.read_csv('data/for_CML/train_data.csv'))
