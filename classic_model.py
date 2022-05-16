@@ -15,7 +15,7 @@ from tqdm.notebook import tqdm
 from utils import get_data
 
 
-def get_features():
+def get_feature_names():
     sp_key = ('m00', 'm10', 'm01', 'm20', 'm11', 'm02', 'm30', 'm21', 'm12', 'm03')
     nu_key = ('nu20', 'nu11', 'nu02', 'nu30', 'nu21', 'nu12', 'nu03')
 
@@ -28,7 +28,7 @@ def get_features():
     return ch_avg + ch_std + hu_mom + sp_mom + nu_mom
 
 
-features = get_features()
+features = get_feature_names()
 
 
 def split_image(image, tile_size=5, step=None):

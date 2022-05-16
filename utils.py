@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.metrics import confusion_matrix
 
 
-def get_metrics(result: np.ndarray, real: np.ndarray) -> Tuple[float, float, float]:
+def get_metrics(result: np.ndarray, real: np.ndarray):
     conf = confusion_matrix(result.flatten(), real.flatten())
     TN, FP, FN, TP = conf.ravel()
 
