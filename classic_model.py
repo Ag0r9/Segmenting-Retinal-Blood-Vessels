@@ -52,7 +52,10 @@ def get_features(image):
 
 def create_meta_data_row(row, step=None):
     image, label = row['original'], row['labeled']
-    image = cv2.fastNlMeansDenoisingColored(image, None, 5, 5, 7, 21)
+    image = cv2.bilateralFilter(image, 5, 15, 15)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+    image[:, :, 0] = cv2.equalizeHist(image[:, :, 0])
+    image = cv2.cvtColor(image, cv2.COLOR_LAB2BGR)
     X = np.array([get_features(x) for x in split_image(image, step=step)])
     y = split_image(label, step=step)[:, 3, 3] > 0
     y = y.astype(int)
@@ -114,7 +117,7 @@ def create_model(data_train):
     final_clf = RandomForestClassifier(n_estimators=500, max_features='sqrt', random_state=42, n_jobs=-1,
                                        **study.best_params)
     final_clf.fit(X_train, y_train)
-    pickle.dump(final_clf, open('./output/RFC_model', 'wb'))
+    pickle.dump(final_clf, open('trained/RFC_model', 'wb'))
 
 
 def train_final_model(data_train):
@@ -124,11 +127,11 @@ def train_final_model(data_train):
     sampler = RandomUnderSampler(sampling_strategy=1, random_state=42)
     X_train, y_train = sampler.fit_resample(X_train, y_train)
     clf = RandomForestClassifier(n_estimators=500, max_features='sqrt',
-                                 random_state=42, n_jobs=-1, max_depth=8,
-                                 min_samples_leaf=0.0011436577596664168,
-                                 min_samples_split=0.01148842820048565)
+                                 random_state=42, n_jobs=-1, max_depth=4,
+                                 min_samples_leaf=0.27465102540699515,
+                                 min_samples_split=0.18059193240561783)
     clf.fit(X_train, y_train)
-    pickle.dump(clf, open('./output/RFC_model', 'wb'))
+    pickle.dump(clf, open('trained/RFC_model', 'wb'))
 
 
 if __name__ == '__main__':
