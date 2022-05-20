@@ -78,7 +78,7 @@ def create_data():
     data['original'], data['labeled'] = resize_data(data['original']), resize_data(data['labeled'])
     data = pd.DataFrame(data).loc[:, ['original', 'labeled']]
     data['id'] = data.index
-    return meta_data(data)
+    return meta_data(data[:5])
 
 
 def resize_data(data):
