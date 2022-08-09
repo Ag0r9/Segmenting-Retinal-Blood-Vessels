@@ -1,23 +1,23 @@
 import os
-from typing import Tuple
+from typing import Tuple, Any, Dict
 
 import cv2
 import numpy as np
 from sklearn.metrics import confusion_matrix
 
 
-def get_metrics(result: np.ndarray, real: np.ndarray):
-    conf = confusion_matrix(result.flatten(), real.flatten())
+def get_metrics(result: np.ndarray, real: np.ndarray) -> Tuple[float, float, float]:
+    conf = confusion_matrix(real.flatten(), result.flatten())
     TN, FP, FN, TP = conf.ravel()
 
-    accuracy = 1.0 * (TP + TN) / (TP + TN + FP + FN)
-    sensitivity = 1.0 * TP / (TP + FN)
-    specificity = 1.0 * TN / (TN + FP)
+    accuracy = float(TP + TN) / float(TP + TN + FP + FN)
+    sensitivity = TP / float(TP + FN)
+    specificity = TN / float(TN + FP)
 
     return accuracy, sensitivity, specificity
 
 
-def get_data(path='./data/HRF/'):
+def get_data(path: str = './data/HRF/') -> Dict[str, list[Any]]:
     files = sorted(os.listdir(path))
     data = {
         'original': [],
