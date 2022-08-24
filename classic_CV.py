@@ -8,7 +8,7 @@ def normalize(image):
     return (1 - (image - filtered_min) / (filtered_max - filtered_min)) * 255
 
 
-def create_result_classic(image, mask):
+def create_result_classic(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
     filtered = frangi(image)
     mask = (frangi(mask))
     mask = cv2.blur(mask, (30, 30))
